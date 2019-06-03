@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "start": "parcel serve src/index.html"
+  },
+  "dependencies": {
+    "parcel-bundler": "^1.12.3"
+  },
+  "name": "parcel-demo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "elm-hot": "^1.0.1",
+    "node-elm-compiler": "^5.0.3"
+  }
+}
