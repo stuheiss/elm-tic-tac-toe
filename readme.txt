@@ -15,7 +15,7 @@ cat << 'EOF' > src/index.html
 </html>
 EOF
 
-cat << 'EOF' > src/index.html
+cat << 'EOF' > src/index.js
 // index.js
 
 import { Elm } from './Main.elm'
