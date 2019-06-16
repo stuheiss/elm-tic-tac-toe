@@ -28,10 +28,15 @@ main =
 
 type alias Board = Array.Array String.String
 
+type alias Winner =
+  { player: String
+  , indexes : List Int
+  }
+
 type alias Model =
   { stepNumber: Int
   , board: Board
-  , winner: String
+  , winner: Winner
   , automoves: List Int
   , rand: Int
   }
@@ -44,11 +49,14 @@ init : () -> (Model, Cmd Msg)
 init _ =
   ( { stepNumber = 0
     , board = emptyBoard
-    , winner = ""
+    , winner = initWinner
     , automoves = List.range 0 8 -- ordered
     , rand = 0
     }
   , initCmd)
+
+initWinner : Winner
+initWinner = { player = "", indexes = [-1,-1,-1] }
 
 generateNewAutomoves : Int -> List Int
 generateNewAutomoves seed =
@@ -103,7 +111,7 @@ update msg model =
     Restart ->
       init ()
     Cell index ->
-      if model.winner /= "" || cellAt index model.board /= "" then
+      if model.winner.player /= "" || cellAt index model.board /= "" then
           (model, Cmd.none)
       else
         let
@@ -121,25 +129,30 @@ view : Model -> Html Msg
 view model =
   let
     status =
-      if model.winner /= "" then
-        "Winner: " ++ model.winner
+      if model.winner.player /= "" then
+        "Winner: " ++ model.winner.player
       else if movesLeft model.board < 1 then
         "Tie Game"
       else
         "Player: " ++ getPlayer model.board
   in
     div [] [
-        h1 [] [ text "TTT in Elm" ]
+        h1 [] [ text "Tic Tac Toe in Elm" ]
       , h2 [] [ text status ]
+      -- , div [ animate ] [ text "Hello world!"]
       , button [ onClick Restart ] [ text "Restart"]
       , button [ onClick GenerateRandomNumber ] [ text "New Battle Plan"]
       , button [ onClick Auto ] [ text "Battle"]
-      , div [] [ text "automoves: ", text <| Debug.toString model.automoves ]
-      , div [] [ text "rand: ", text <| String.fromInt model.rand ]
+      , div [] [ text "battleplan: ", text <| Debug.toString model.automoves ]
+      -- , div [] [ text "winner: ", text <| Debug.toString model.winner ]
+      -- , div [] [ text "rand: ", text <| String.fromInt model.rand ]
       , div [] [ text "Moves used: ", text <| String.fromInt <| movesUsed model.board ]
       , div [] [ text "Moves left: ", text <| String.fromInt <| movesLeft model.board ]
-      , board model.board
+      , board model
     ]
+
+-- animate = class "w3-container w3-center w3-animate-top"
+animate = class "w3-animate-zoom"
 
 movesUsed : Board -> Int
 movesUsed brd =
@@ -155,38 +168,59 @@ getPlayer brd =
     0 -> "X"
     _ -> "O"
 
-board : Board -> Html Msg
-board brd =
+board : Model -> Html Msg
+board model =
   table styledTable
-    [ tr [] [ square 0 brd, square 1 brd, square 2 brd ]
-    , tr [] [ square 3 brd, square 4 brd, square 5 brd ]
-    , tr [] [ square 6 brd, square 7 brd, square 8 brd ]
+    [ tr [] (List.map (\i -> square i model) [0, 1, 2])
+    , tr [] (List.map (\i -> square i model) [3, 4, 5])
+    , tr [] (List.map (\i -> square i model) [6, 7, 8])
     ]
 
-square : Int -> Array.Array String.String -> Html Msg
-square index brd =
-  td (styledTd (Cell index)) [ text <| cellAt index brd ]
+square : Int -> Model -> Html Msg
+square index model =
+  td (styledTd index model (Cell index)) [ text <| cellAt index model.board ]
 
 cellAt : Int -> Board -> String
 cellAt idx brd = Array.get idx brd |> Maybe.withDefault "?"
 
-styledTable = [
-    style "width" "200px"
+styledTable =
+  [ style "width" "200px"
   , style "height" "200px"
   , style "border" "1px solid black"
   , style "border-collapse" "collapse"
   , style "text-align" "center"
   ]
 
-styledTd msg = [
-    style "border" "1px solid black"
+styledTd idx model msg =
+  [ style "border" "1px solid black"
   , style "font-size" "40px"
   , style "width" "33%"
   , style "height" "33%"
+  , style "background-color" (playerBackgroundColor idx model)
+  , style "animation-duration" "2s"
+  , class (playerClass idx model)
   , onClick msg
   ]
 
-getWinner : Board -> String
+playerClass idx model =
+  let
+      player = cellAt idx model.board
+  in
+    if player == "" then
+      "w3-container"
+    else if player == model.winner.player && (List.member idx model.winner.indexes) then
+      "w3-container w3-animate-fading"
+    else
+      "w3-container w3-animate-opacity"
+
+
+playerBackgroundColor idx model =
+  case cellAt idx model.board of
+    "X" -> "lightgreen"
+    "O" -> "lightblue"
+    _ -> "white"
+
+getWinner : Board -> Winner
 getWinner brd =
   let
     possibleWins : List (List Int)
@@ -201,9 +235,9 @@ getWinner brd =
       [2, 4, 6]
       ]
 
-    findWinner : List Int -> String
-    findWinner tripple =
-      case tripple of
+    findWinner : List Int -> Winner
+    findWinner indexes =
+      case indexes of
         [a, b, c] ->
           let
             aVal = cellAt a brd
@@ -211,9 +245,9 @@ getWinner brd =
             cVal = cellAt c brd
           in
             if aVal /= "" && aVal == bVal && aVal == cVal then
-              aVal
+              { player = aVal, indexes = indexes }
             else
-              ""
-        _ -> ""
+              initWinner
+        _ -> initWinner
   in
-    List.foldl (\cur acc -> let theWinner = findWinner cur in if theWinner /= "" then theWinner else acc) "" possibleWins
+    List.foldl (\cur acc -> let winner = findWinner cur in if winner.player /= "" then winner else acc) initWinner possibleWins
