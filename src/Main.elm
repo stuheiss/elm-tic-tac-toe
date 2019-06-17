@@ -344,3 +344,48 @@ getWinner brd =
         _ -> initWinner
   in
     List.foldl (\cur acc -> let winner = findWinner cur in if winner.player /= "" then winner else acc) initWinner possibleWins
+
+getEmptyCells : Board -> List Int
+getEmptyCells brd =
+  Array.toIndexedList brd |>
+    List.filter (\(i,v) -> v == "") |>
+      List.map (\(i,_) -> i)
+
+minimaxScore : Board -> String -> String -> Int
+minimaxScore brd player playerToOptimize =
+  let
+    winner = getWinner brd
+    cells = getEmptyCells brd
+    fun =
+      if player == playerToOptimize then
+        max
+      else
+        min
+  in
+    if winner.player /= "" then
+      if winner.player == playerToOptimize then
+        10
+      else
+        -10
+    else if List.length cells < 1 then
+      0
+    else
+      List.foldl (\(cur, acc)_ -> 0) 0 cells
+{--
+    public function minimaxScore($board, $player, $playerToOptimize)
+    {
+        if ($winner = Board::hasWinner($board)) {
+            return $winner === $playerToOptimize ? 10 : -10;
+        } else if (!($cells = Board::getEmptyCells($board))) {
+            return 0;
+        }
+        $scores = [];
+        foreach ($cells as $cell) {
+            $newBoard = Board::playerMoveTo($player, Board::numberFromRowCol($cell['row'], $cell['col']), $board);
+            $opponent = $this->opponent($player);
+            $score = $this->minimaxScore($newBoard, $opponent, $playerToOptimize);
+            $scores[] = $score;
+        }
+        return ($player === $playerToOptimize) ? max($scores) : min($scores);
+    }
+--}
