@@ -161,9 +161,14 @@ update msg model =
           let
             (newModel, newCmd) = update (Cell x) {model | automoves = xs}
           in
-            (newModel, Delay.after 500 Delay.Millisecond Auto)
+            (newModel, Delay.after 250 Delay.Millisecond Auto)
         _ ->
-          (model, Cmd.none)
+          let
+            newCmd =
+              if model.winner.player /= "" then cycleColors model
+              else Cmd.none
+          in
+            (model, newCmd)
 
     Restart ->
       init ()
@@ -177,12 +182,12 @@ update msg model =
           newWinner = getWinner newBoard
           newModel = { model | board = newBoard, winner = newWinner }
           newCmd =
-            if newWinner.player == "" then
-              Cmd.none
+            if newWinner.player /= "" then
+              cycleColors newModel
             else
-              cycleColors model
+              Cmd.none
         in
-          (newModel, Cmd.none)
+          (newModel, newCmd)
 
     Trigger ->
         ( model, cycleColors model )
@@ -351,6 +356,23 @@ getEmptyCells brd =
     List.filter (\(i,v) -> v == "") |>
       List.map (\(i,_) -> i)
 
+scoreBoards : Board -> List Board -> List Board
+scoreBoards brd acc =
+  let
+    cells = getEmptyCells brd
+  in
+    case cells of
+    x :: xs ->
+      let
+        newBrd = Array.set x (getPlayer brd) brd
+      in
+        scoreBoards newBrd (newBrd :: acc)
+    _ ->
+      acc
+
+scoreTheBoards brd =
+  scoreBoards brd []
+
 minimaxScore : Board -> String -> String -> Int
 minimaxScore brd player playerToOptimize =
   let
@@ -370,7 +392,7 @@ minimaxScore brd player playerToOptimize =
     else if List.length cells < 1 then
       0
     else
-      List.foldl (\(cur, acc)_ -> 0) 0 cells
+      List.foldl (\cur acc -> 0) 0 cells
 {--
     public function minimaxScore($board, $player, $playerToOptimize)
     {
